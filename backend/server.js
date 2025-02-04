@@ -4,12 +4,13 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-mongoose.connect('mongodb://localhost:27017/event', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/event', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -42,6 +43,12 @@ const eventSchema = new mongoose.Schema({
 // Create the Event model
 const Event = mongoose.model('Event', eventSchema);
 
+// Ensure the pdfs directory exists
+const pdfsDir = path.join(__dirname, 'pdfs');
+if (!fs.existsSync(pdfsDir)) {
+  fs.mkdirSync(pdfsDir);
+}
+
 // Handle form submission
 app.post('/submit', async (req, res) => {
   console.log('Form data received:', req.body); // Log the form data
@@ -51,7 +58,7 @@ app.post('/submit', async (req, res) => {
 
     // Generate PDF
     const doc = new PDFDocument();
-    const filePath = `./pdfs/${event._id}.pdf`;
+    const filePath = path.join(pdfsDir, `${event._id}.pdf`);
     doc.pipe(fs.createWriteStream(filePath));
 
     doc.fontSize(14).text('MUJ/Q&C/24/F/1.02 Event Report Format', { align: 'center' });
@@ -87,6 +94,6 @@ app.post('/submit', async (req, res) => {
 });
 
 // Start the server
-app.listen(3000, () => {
+app.listen(process.env.PORT || 3000, () => {
   console.log('Server is running on port 3000');
 });
